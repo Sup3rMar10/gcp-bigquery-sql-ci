@@ -1,0 +1,55 @@
+model: customer_ltv
+cases:
+  - name: totals, count, average and latest order per customer; cancelled orders are ignored
+    params: {run_date: "2026-10-16"}
+    given:
+      sales.customers:
+        - {customer_id: c1, name: Acme Co}
+        - {customer_id: c2, name: Globex}
+      sales.orders:
+        - {order_id: a, customer_id: c1, created_at: "2026-09-01 10:00:00", status: paid, currency: USD, amount: 10}
+        - {order_id: b, customer_id: c1, created_at: "2026-10-01 11:00:00", status: paid, currency: USD, amount: 30}
+        - {order_id: x, customer_id: c1, created_at: "2026-10-02 11:00:00", status: cancelled, currency: USD, amount: 999}
+        - {order_id: c, customer_id: c2, created_at: "2026-08-01 09:00:00", status: paid, currency: USD, amount: 8}
+    expect:
+      - {customer_id: c1, name: Acme Co, lifetime_value: 40.0, orders: 2, avg_order_value: 20.0, last_order_at: "2026-10-01 11:00:00"}
+      - {customer_id: c2, name: Globex, lifetime_value: 8.0, orders: 1, avg_order_value: 8.0, last_order_at: "2026-08-01 09:00:00"}
+  - name: a customer with no orders still appears, with zero value and a NULL average
+    params: {run_date: "2026-10-16"}
+    given:
+      sales.customers:
+        - {customer_id: c9, name: Newcomer}
+    expect:
+      - {customer_id: c9, name: Newcomer, lifetime_value: 0.0, orders: 0, avg_order_value: null, last_order_at: null}
+  - name: a customer whose only orders are cancelled looks the same as one with none
+    params: {run_date: "2026-10-16"}
+    given:
+      sales.customers:
+        - {customer_id: c1, name: Acme Co}
+      sales.orders:
+        - {order_id: x, customer_id: c1, created_at: "2026-10-01 10:00:00", status: cancelled, currency: USD, amount: 50}
+    expect:
+      - {customer_id: c1, name: Acme Co, lifetime_value: 0.0, orders: 0, avg_order_value: null, last_order_at: null}
+  - name: the two-year window includes its first instant and excludes the second before it
+    params: {run_date: "2026-10-16"}
+    given:
+      sales.customers:
+        - {customer_id: c1, name: Acme Co}
+      sales.orders:
+        - {order_id: too_old, customer_id: c1, created_at: "2024-10-16 23:59:59", status: paid, currency: USD, amount: 100}
+        - {order_id: just_in, customer_id: c1, created_at: "2024-10-17 00:00:00", status: paid, currency: USD, amount: 7}
+    expect:
+      - {customer_id: c1, name: Acme Co, lifetime_value: 7.0, orders: 1, avg_order_value: 7.0, last_order_at: "2024-10-17 00:00:00"}
+  - name: orders of an unknown customer do not create a row
+    params: {run_date: "2026-10-16"}
+    given:
+      sales.customers:
+        - {customer_id: c1, name: Acme Co}
+      sales.orders:
+        - {order_id: ghost, customer_id: nobody, created_at: "2026-10-01 10:00:00", status: paid, currency: USD, amount: 5}
+    expect:
+      - {customer_id: c1, name: Acme Co, lifetime_value: 0.0, orders: 0, avg_order_value: null, last_order_at: null}
+  - name: no customers gives no rows
+    params: {run_date: "2026-10-16"}
+    given: {}
+    expect: []

@@ -1,0 +1,9 @@
+model: daily_revenue
+description: Revenue per day and currency. Dashboards read this; changing its shape breaks them.
+columns:
+  - {name: day, type: DATE}
+  - {name: currency, type: STRING}
+  - {name: orders, type: INT64}
+  - {name: revenue, type: NUMERIC, nullable: true}   # NULL when every amount in the group is NULL
+  - {name: refunds, type: INT64}
+unique: [day, currency]

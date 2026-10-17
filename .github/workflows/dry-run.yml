@@ -1,0 +1,34 @@
+name: dry-run
+
+# Reference pipeline, NEVER RUN against a real BigQuery project. A dry run asks BigQuery itself to parse and plan each model
+# and report the bytes it would process, which is the authority the static checks here only approximate. Skipped unless the
+# repository variable GCP_WIF_PROVIDER is set (see gcp-wif-github-deploy for the keyless setup this assumes).
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    if: vars.GCP_WIF_PROVIDER != ''
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_PLAN_SA }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Dry-run every model
+        env:
+          PROJECT: ${{ vars.GCP_PROJECT }}
+        run: |
+          for f in sql/*.sql; do
+            echo "== $f"
+            bq query --project_id="$PROJECT" --use_legacy_sql=false --dry_run \
+              --parameter=run_date:DATE:2026-10-16 < "$f"
+          done

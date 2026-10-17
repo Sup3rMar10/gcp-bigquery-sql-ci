@@ -1,0 +1,10 @@
+model: customer_ltv
+description: One row per customer, including customers with no orders.
+columns:
+  - {name: customer_id, type: STRING}
+  - {name: name, type: STRING, nullable: true}
+  - {name: lifetime_value, type: NUMERIC}
+  - {name: orders, type: INT64}
+  - {name: avg_order_value, type: NUMERIC, nullable: true}   # NULL when the customer has no orders
+  - {name: last_order_at, type: TIMESTAMP, nullable: true}
+unique: [customer_id]

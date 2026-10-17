@@ -1,0 +1,10 @@
+model: late_payments
+description: One row per overdue, not fully paid invoice.
+columns:
+  - {name: invoice_id, type: STRING}
+  - {name: customer_id, type: STRING}
+  - {name: due_on, type: DATE}
+  - {name: amount, type: NUMERIC}
+  - {name: paid_amount, type: NUMERIC}
+  - {name: days_overdue, type: INT64}
+unique: [invoice_id]

@@ -1,0 +1,62 @@
+model: daily_revenue
+cases:
+  - name: aggregates per day and currency and counts refunds
+    params: {run_date: "2026-10-16"}
+    given:
+      sales.orders:
+        - {order_id: o1, customer_id: c1, created_at: "2026-10-16 09:00:00", status: paid, currency: USD, amount: 10.50}
+        - {order_id: o2, customer_id: c2, created_at: "2026-10-16 18:30:00", status: paid, currency: USD, amount: 4.50}
+        - {order_id: o3, customer_id: c1, created_at: "2026-10-16 19:00:00", status: refunded, currency: USD, amount: 7.00}
+        - {order_id: o4, customer_id: c3, created_at: "2026-10-15 12:00:00", status: paid, currency: EUR, amount: 20.00}
+    expect:
+      - {day: "2026-10-16", currency: USD, orders: 3, revenue: 22.0, refunds: 1}
+      - {day: "2026-10-15", currency: EUR, orders: 1, revenue: 20.0, refunds: 0}
+  - name: the window is the 7 days ending on run_date, inclusive at both ends
+    params: {run_date: "2026-10-16"}
+    given:
+      sales.orders:
+        - {order_id: before, customer_id: c, created_at: "2026-10-09 23:59:59", status: paid, currency: USD, amount: 1}
+        - {order_id: first, customer_id: c, created_at: "2026-10-10 00:00:00", status: paid, currency: USD, amount: 2}
+        - {order_id: last, customer_id: c, created_at: "2026-10-16 23:59:59", status: paid, currency: USD, amount: 4}
+        - {order_id: after, customer_id: c, created_at: "2026-10-17 00:00:00", status: paid, currency: USD, amount: 8}
+    expect:
+      - {day: "2026-10-10", currency: USD, orders: 1, revenue: 2.0, refunds: 0}
+      - {day: "2026-10-16", currency: USD, orders: 1, revenue: 4.0, refunds: 0}
+  - name: no orders gives no rows
+    params: {run_date: "2026-10-16"}
+    given: {}
+    expect: []
+  - name: a NULL amount still counts as an order but adds nothing to revenue
+    params: {run_date: "2026-10-16"}
+    given:
+      sales.orders:
+        - {order_id: a, customer_id: c, created_at: "2026-10-16 01:00:00", status: paid, currency: USD, amount: 5}
+        - {order_id: b, customer_id: c, created_at: "2026-10-16 02:00:00", status: paid, currency: USD}
+    expect:
+      - {day: "2026-10-16", currency: USD, orders: 2, revenue: 5.0, refunds: 0}
+  - name: when every amount in a group is NULL the revenue is NULL, not zero
+    params: {run_date: "2026-10-16"}
+    given:
+      sales.orders:
+        - {order_id: a, customer_id: c, created_at: "2026-10-16 01:00:00", status: paid, currency: USD}
+    expect:
+      - {day: "2026-10-16", currency: USD, orders: 1, revenue: null, refunds: 0}
+  - name: currencies are never mixed
+    params: {run_date: "2026-10-16"}
+    given:
+      sales.orders:
+        - {order_id: a, customer_id: c, created_at: "2026-10-16 01:00:00", status: paid, currency: USD, amount: 1}
+        - {order_id: b, customer_id: c, created_at: "2026-10-16 02:00:00", status: paid, currency: GBP, amount: 2}
+        - {order_id: c, customer_id: c, created_at: "2026-10-16 03:00:00", status: paid, currency: EUR, amount: 3}
+    expect:
+      - {day: "2026-10-16", currency: USD, orders: 1, revenue: 1.0, refunds: 0}
+      - {day: "2026-10-16", currency: GBP, orders: 1, revenue: 2.0, refunds: 0}
+      - {day: "2026-10-16", currency: EUR, orders: 1, revenue: 3.0, refunds: 0}
+  - name: a different run_date moves the window
+    params: {run_date: "2026-10-20"}
+    given:
+      sales.orders:
+        - {order_id: old, customer_id: c, created_at: "2026-10-13 12:00:00", status: paid, currency: USD, amount: 1}
+        - {order_id: new, customer_id: c, created_at: "2026-10-14 12:00:00", status: paid, currency: USD, amount: 2}
+    expect:
+      - {day: "2026-10-14", currency: USD, orders: 1, revenue: 2.0, refunds: 0}

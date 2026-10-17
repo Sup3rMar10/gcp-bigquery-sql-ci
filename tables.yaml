@@ -1,0 +1,41 @@
+# The warehouse catalog the tooling checks SQL against: column types, an average width per column (for the cost model),
+# row counts, and which column each big table is partitioned on. Invented numbers; a real one would be generated
+# from INFORMATION_SCHEMA.
+tables:
+  acme-prod.sales.orders:
+    rows: 2000000000
+    partition: {column: created_at, days: 730}
+    columns:
+      order_id: {type: STRING, bytes: 18}
+      customer_id: {type: STRING, bytes: 18}
+      created_at: {type: TIMESTAMP, bytes: 8}
+      status: {type: STRING, bytes: 10}
+      currency: {type: STRING, bytes: 5}
+      amount: {type: NUMERIC, bytes: 16}
+      shipping_address: {type: STRING, bytes: 120}
+      notes: {type: STRING, bytes: 400}
+  acme-prod.sales.customers:
+    rows: 50000000
+    columns:
+      customer_id: {type: STRING, bytes: 18}
+      name: {type: STRING, bytes: 30}
+      email: {type: STRING, bytes: 32}
+      country: {type: STRING, bytes: 4}
+      signed_up_at: {type: TIMESTAMP, bytes: 8}
+  acme-prod.billing.invoices:
+    rows: 300000000
+    partition: {column: issued_on, days: 1095}
+    columns:
+      invoice_id: {type: STRING, bytes: 18}
+      customer_id: {type: STRING, bytes: 18}
+      issued_on: {type: DATE, bytes: 8}
+      due_on: {type: DATE, bytes: 8}
+      amount: {type: NUMERIC, bytes: 16}
+  acme-prod.billing.payments:
+    rows: 280000000
+    partition: {column: paid_on, days: 1095}
+    columns:
+      payment_id: {type: STRING, bytes: 18}
+      invoice_id: {type: STRING, bytes: 18}
+      paid_on: {type: DATE, bytes: 8}
+      amount: {type: NUMERIC, bytes: 16}

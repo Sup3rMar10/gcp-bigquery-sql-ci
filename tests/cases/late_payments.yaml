@@ -1,0 +1,59 @@
+model: late_payments
+cases:
+  - name: an overdue unpaid invoice is listed with how many days overdue it is
+    params: {run_date: "2026-10-16"}
+    given:
+      billing.invoices:
+        - {invoice_id: i1, customer_id: c1, issued_on: "2026-08-01", due_on: "2026-09-01", amount: 100}
+    expect:
+      - {invoice_id: i1, customer_id: c1, due_on: "2026-09-01", amount: 100.0, paid_amount: 0.0, days_overdue: 45}
+  - name: a fully paid invoice is not listed, and a partly paid one shows what was paid
+    params: {run_date: "2026-10-16"}
+    given:
+      billing.invoices:
+        - {invoice_id: paid, customer_id: c1, issued_on: "2026-08-01", due_on: "2026-09-01", amount: 100}
+        - {invoice_id: part, customer_id: c2, issued_on: "2026-08-01", due_on: "2026-09-01", amount: 100}
+      billing.payments:
+        - {payment_id: p1, invoice_id: paid, paid_on: "2026-09-10", amount: 100}
+        - {payment_id: p2, invoice_id: part, paid_on: "2026-09-10", amount: 40}
+    expect:
+      - {invoice_id: part, customer_id: c2, due_on: "2026-09-01", amount: 100.0, paid_amount: 40.0, days_overdue: 45}
+  - name: several payments on one invoice add up
+    params: {run_date: "2026-10-16"}
+    given:
+      billing.invoices:
+        - {invoice_id: i1, customer_id: c1, issued_on: "2026-08-01", due_on: "2026-09-01", amount: 100}
+      billing.payments:
+        - {payment_id: p1, invoice_id: i1, paid_on: "2026-09-05", amount: 30}
+        - {payment_id: p2, invoice_id: i1, paid_on: "2026-09-20", amount: 30}
+        - {payment_id: p3, invoice_id: i1, paid_on: "2026-10-01", amount: 40}
+    expect: []
+  - name: more than 30 days overdue means strictly more, so exactly 30 is not listed and 31 is
+    params: {run_date: "2026-10-16"}
+    given:
+      billing.invoices:
+        - {invoice_id: thirty, customer_id: c1, issued_on: "2026-08-01", due_on: "2026-09-16", amount: 10}
+        - {invoice_id: thirty_one, customer_id: c1, issued_on: "2026-08-01", due_on: "2026-09-15", amount: 10}
+    expect:
+      - {invoice_id: thirty_one, customer_id: c1, due_on: "2026-09-15", amount: 10.0, paid_amount: 0.0, days_overdue: 31}
+  - name: invoices issued before the 120-day window are out of scope
+    params: {run_date: "2026-10-16"}
+    given:
+      billing.invoices:
+        - {invoice_id: ancient, customer_id: c1, issued_on: "2026-06-17", due_on: "2026-07-17", amount: 10}
+        - {invoice_id: edge, customer_id: c1, issued_on: "2026-06-18", due_on: "2026-07-18", amount: 10}
+    expect:
+      - {invoice_id: edge, customer_id: c1, due_on: "2026-07-18", amount: 10.0, paid_amount: 0.0, days_overdue: 90}
+  - name: a payment dated after run_date has not happened yet, so the invoice is still unpaid
+    params: {run_date: "2026-10-16"}
+    given:
+      billing.invoices:
+        - {invoice_id: i1, customer_id: c1, issued_on: "2026-08-01", due_on: "2026-09-01", amount: 100}
+      billing.payments:
+        - {payment_id: future, invoice_id: i1, paid_on: "2026-10-20", amount: 100}
+    expect:
+      - {invoice_id: i1, customer_id: c1, due_on: "2026-09-01", amount: 100.0, paid_amount: 0.0, days_overdue: 45}
+  - name: nothing to report gives no rows
+    params: {run_date: "2026-10-16"}
+    given: {}
+    expect: []
