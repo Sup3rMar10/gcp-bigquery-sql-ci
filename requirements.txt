@@ -1,0 +1,5 @@
+sqlglot
+duckdb
+pyyaml
+pytz   # DuckDB needs it to return TIMESTAMPTZ values to Python; absent, any model that outputs a timestamp fails
+pytest
