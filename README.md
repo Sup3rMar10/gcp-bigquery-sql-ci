@@ -4,7 +4,7 @@
 
 CI for **BigQuery SQL** that runs without a BigQuery project: it **lints** the SQL for mistakes that cost money or return wrong answers, **estimates scan cost** from the columns a query reads, **runs every model over fixture data** (in DuckDB) to unit-test its logic, and checks the output against a **data contract**.
 
-> **What is verified, and what is not.** 91 tests pass locally on Python 3.13, the three `bqci` commands pass, and CI repeats this on Linux. I changed the models on purpose four times (a window boundary, a `<=` for `<`, the wrong status excluded, a dropped `IFNULL`) and tests failed each time. **Nothing has run on BigQuery.** The cost figures are a *model* of BigQuery's billing, and the unit tests run in DuckDB, which is not BigQuery (see the limits, including a real divergence I hit). The `dry-run.yml` workflow, which asks BigQuery itself, was never run.
+> **What is verified, and what is not.** 91 tests pass locally on Python 3.13, the three `bqci` commands pass, and GitHub Actions on Linux passed the tests and all three commands on Python 3.11 and 3.13 (2026-10-17), after a first failed run that is described below. I changed the models on purpose four times (a window boundary, a `<=` for `<`, the wrong status excluded, a dropped `IFNULL`) and tests failed each time. **Nothing has run on BigQuery.** The cost figures are a *model* of BigQuery's billing, and the unit tests run in DuckDB, which is not BigQuery (see the limits, including a real divergence I hit). The `dry-run.yml` workflow, which asks BigQuery itself, was never run.
 
 ## What it checks
 
